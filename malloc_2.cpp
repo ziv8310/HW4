@@ -1,75 +1,114 @@
-#include <unistd.h>
 
-size_t _size_meta_data();
+//part 1
+//===================================================
+void* smalloc(size_t size){
+    if(size==0 || size >10*10*10*10*10*10*10*10){
+        return NULL;
+    }
+    void* pointer = sbrk(size);
+    if (ptr == (void*) -1) {
+        return NULL;
+    }
+    return pointer;
+}
 
+
+
+//===================================================
+//part 2
+//todo move somewhere
+
+
+size_t  var_num_free_blocks=0;
+
+size_t var_num_free_bytes=0;
+
+size_t var_num_allocated_blocks=0; //number of total blocks
+
+size_t var_num_allocated_bytes=0;
+
+size_t var_num_meta_data_bytes=0;
+
+size_t _size_meta_data(){
+    return sizeof(MallocMetadata);
+}
 struct MallocMetadata {
     size_t size;
     bool is_free;
     MallocMetadata* next;
     MallocMetadata* prev;
-};
-MallocMetadata* malloc_list = nullptr;
-// malloc_list->next= nullptr;
+} ;
 
 void* smalloc(size_t size) {
     if (size == 0 || size > 10 * 10 * 10 * 10 * 10 * 10 * 10 * 10) {
-        return nullptr;
+        return NULL;
     }
-    size_t new_full_size = size + _size_meta_data();
-    MallocMetadata* curr = malloc_list; // todo should maybe copy fields
-    void *pointer;
-    MallocMetadata *new_meta;
+    size_t full_size = size + _size_meta_data();
+    MallocMetadata *copy_list = malloc_list; // todo should maybe copy fields
+    while (copy_list->next != NULL) {
+        if (copy_list->is_free && copy_list->size >= full_size) {
+            //alocating all block even if we lose space
 
-
-    //TODO need to check for pointer fails, maybe make it a seperate function.
-    // if list is empty
-    if (curr == nullptr) {
-        pointer = std::sbrk(new_full_size); //instead of sbrk call wrapper function.
-        new_meta = (MallocMetadata *)pointer;
-        new_meta->size = size;
-        new_meta->is_free = false;
-        new_meta->next = nullptr;
-        new_meta->prev = nullptr;
-        // TODO return malloc aid func val
-    }
-    else {
-        // if list isn't empty check if it has a free block of an appropriate size
-        while (curr != nullptr) {
-            if (curr->is_free && curr->size >= size) {
-                curr->is_free = false;
-                // //use entire block even if we lose space (high internal fragmentation)
-                curr++;
-                return curr;
-            }
-            curr = curr->next;
+            copy_list->is_free=0;
+            return //todo return pointer adress -metadata;
         }
-        // if list doesn't have a freeblock of an appropriate size then allocate a new one here.
-        // updates both new block and previous block
-
-        // new block allocation
-        pointer = std::sbrk(new_full_size);
-        new_meta = (MallocMetadata *)pointer;
-        new_meta->size = size;
-        new_meta->is_free = false;
-        new_meta->next = nullptr;
-        new_meta->prev = curr;
-
-        // old block fix
-        curr->next = new_meta;
-        return pointer;
     }
+    void *pointer = sbrk(full_size);
+    if (ptr == (void *) -1) {
+        return NULL;
+    }
+    return pointer + _size_meta_data();
 }
 
 void* scalloc(size_t num, size_t size){
-    return smalloc(size*num);
-    //todo is enough? can all the blocks share one metadata?
+
+    void* p=smalloc(size*num);
+    if(p==NULL)
+    {
+        return NULL;
+    }
+    std::memset(ptr, 0, size*num);
 }
+
 void sfree(void* p){
     if(p==NULL){
         return;
     }
+    MallocMetadata* meta = static_cast<MallocMetadata*>(p) - 1;
+    meta->is_free=1;
+
+}
+void* srealloc(void* oldp, size_t size){
+    if (size == 0 || size > 10 * 10 * 10 * 10 * 10 * 10 * 10 * 10) {
+        return NULL;
+    }
+    if(oldp==NULL){
+        return smalloc(size);
+    }
+    MallocMetadata* old_meta = static_cast<MallocMetadata*>(oldp) - 1;
+    if(old_meta>=size){
+        return oldp;
+    }
+    return smalloc(size);
 }
 
-size_t _size_meta_data(){
-    return sizeof(MallocMetadata);
+size_t _num_free_blocks(){
+    return var_num_free_blocks;
 }
+
+size_t _num_free_bytes(){
+    return var_num_free_bytes;
+}
+
+size_t _num_allocated_blocks(){
+    return var_num_allocated_blocks;
+}
+
+size_t _num_allocated_bytes(){
+    return var_num_allocated_bytes;
+}
+
+size_t _num_meta_data_bytes(){
+    return var_num_meta_data_bytes;
+}
+ignore smalloc implement and assume it works as the pdf request, the rest of the code works fine? also assume smalloc updated the global veriables and initializing the list if empty
