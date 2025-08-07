@@ -67,7 +67,8 @@ void* scalloc(size_t num, size_t size){
     {
         return NULL;
     }
-    std::memset(ptr, 0, size*num);
+    std::memset(p, 0, size*num);
+    return p;
 }
 
 void sfree(void* p){
@@ -89,7 +90,8 @@ void* srealloc(void* oldp, size_t size){
     if(old_meta>=size){
         return oldp;
     }
-    return smalloc(size);
+    void*p= std::memmove(newp, oldp, size);
+    return p;
 }
 
 size_t _num_free_blocks(){
@@ -111,4 +113,3 @@ size_t _num_allocated_bytes(){
 size_t _num_meta_data_bytes(){
     return var_num_meta_data_bytes;
 }
-ignore smalloc implement and assume it works as the pdf request, the rest of the code works fine? also assume smalloc updated the global veriables and initializing the list if empty
