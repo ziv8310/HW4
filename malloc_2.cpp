@@ -33,6 +33,9 @@ void* smalloc(size_t size) {
     // if list is empty
     if (curr == nullptr) {
         pointer = std::sbrk(new_full_size); //TODO instead of sbrk, call wrapper function.
+        if (pointer == (void *)-1) {
+            return nullptr;
+        }
         new_meta = (MallocMetadata *)pointer;
         new_meta->size = size;
         new_meta->is_free = false;
@@ -62,6 +65,10 @@ void* smalloc(size_t size) {
 
         // new block allocation
         pointer = std::sbrk(new_full_size);
+        if (pointer == (void *)-1) {
+            return nullptr;
+        }
+
         new_meta = (MallocMetadata *)pointer;
         new_meta->size = size;
         new_meta->is_free = false;
