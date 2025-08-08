@@ -14,9 +14,7 @@ struct MallocMetadata {
     MallocMetadata *parent;
     MallocMetadata *left;
     MallocMetadata *right;
-    void *address;
 };
-
 
 
 size_t var_num_free_blocks = 0;
@@ -30,7 +28,7 @@ size_t _size_meta_data() {
 }
 
 
-MallocMetadata *malloc_lists[MAX_ORDER+1];
+MallocMetadata *malloc_lists[MAX_ORDER + 1];
 MallocMetadata *malloc_tree[BLOCKS_NUM];
 
 
@@ -60,27 +58,26 @@ int init_tree() {
         if (i == 0) {
             malloc_tree[i]->prev = nullptr;
         } else {
-            malloc_tree[i]->prev = malloc_tree[i-1];
+            malloc_tree[i]->prev = malloc_tree[i - 1];
         }
         if (i == 31) {
             malloc_tree[i]->next = nullptr;
         } else {
-            malloc_tree[i]->next = malloc_tree[i+1];
+            malloc_tree[i]->next = malloc_tree[i + 1];
         }
 
         malloc_tree[i]->parent = nullptr;
         malloc_tree[i]->left = nullptr;
         malloc_tree[i]->right = nullptr;
-        malloc_tree[i]->address = static_cast<void*>(static_cast<std::byte*>(startAdrr) + BLOCKS_SIZE*i);
     }
     malloc_lists[10] = malloc_tree[0];
 }
 
-int init_list(){
-
+int init_list() {
 
 
 }
+
 void *smalloc(size_t size) {
     //focus only on
     if (size == 0 || size > 10 * 10 * 10 * 10 * 10 * 10 * 10 * 10) {
@@ -176,14 +173,93 @@ void *scalloc(size_t num, size_t size) {
     return p;
 }
 
+bool is_my_children_dead(MallocMetadata *start) {
+    if (start->left == nullptr) {
+        if (start->right == nullptr)
+            return true;
+        else if (start->right->is_free) {
+            return true;
+        } else
+            return false;
+    } else if (start->right == nullptr) {
+        if (start->left->is_free)
+            return true;
+        else
+            return false;
+    }
+    return (start->left->is_free && start->right->is_free);
+
+}
+
+int find_size_index(MallocMetadata *meta) {
+    for (int i = 0; i < 11; ++i) {
+        if (meta->size + _size_meta_data() == BLOCK_SIZES[i])
+            return i;
+    }
+    return -1;
+}
+
+void remove_from_free_list(MallocMetadata *current) {
+}
+
+void add_to_free_list(MallocMetadata *current) {
+    int index = find_size_index(current);
+    MallocMetadata *start = malloc_lists[index];
+    while (start->next != nullptr) {
+        if (start > current) {
+            if (start->prev == nullptr) {
+                malloc_lists[index] = current;
+            } else {
+                start->prev->next = current;
+                current->next = start->prev->next;
+            }
+            start->prev = current;
+            current->next = start;
+            break;
+        }
+    }
+}
+
+MallocMetadata *free_buddy_union(MallocMetadata *start) {
+    if (start->parent == nullptr)
+        return start;
+    if (is_my_children_dead(start->parent)) {
+        if (start->parent->left != nullptr) {
+            if (start != start->parent->left) {
+                remove_from_free_list(start->parent->left);
+            }
+        } else if (start->parent->right != nullptr) {
+            if (start != start->parent->right) {
+                remove_from_free_list(start->parent->right);
+            }
+        }
+        start->parent->left = nullptr;
+        start->parent->right = nullptr;
+        start->parent->is_free = true;
+        start->parent->used_size -= BLOCK_SIZES[find_size_index(start)];
+        return free_buddy_union(start->parent);
+    } else {
+        if (start->parent->left != nullptr) {
+            if (start == start->parent->left) {
+                start->parent->left = nullptr;
+            }
+        } else {
+
+            start->parent->right = nullptr;
+        }
+        start->parent->used_size -= BLOCK_SIZES[find_size_index(start)];
+        return start;
+    }
+}
+
 void sfree(void *p) {
     if (p == nullptr) {
         return;
     }
     MallocMetadata *meta = static_cast<MallocMetadata *>(p) - 1;
     meta->is_free = true;
-    var_num_free_blocks++;
-    var_num_free_bytes += meta->size;
+    meta = free_buddy_union(meta);
+    add_to_free_list(meta);
 }
 
 
@@ -198,8 +274,6 @@ void *srealloc(void *oldp, size_t size) {
     if (old_meta->size >= size) {
         return oldp;
     }
-
-
     void *new_mem = smalloc(size);
     if (new_mem != nullptr) {
         sfree(oldp);
