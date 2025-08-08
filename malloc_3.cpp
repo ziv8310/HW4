@@ -4,8 +4,8 @@
 
 #define MAX_ORDER 10
 #define BLOCKS_NUM 32
-#define BLOCKS_SIZE 131072
-void * startAdrr= nullptr;
+#define BLOCKS_SIZE 131072 //1024*128
+void *startAdrr = nullptr;
 struct MallocMetadata {
     size_t size;
     bool is_free;
@@ -14,12 +14,9 @@ struct MallocMetadata {
     MallocMetadata *parent;
     MallocMetadata *left;
     MallocMetadata *right;
-    void* address;
+    void *address;
 };
 
-struct ArrList{
-    MallocMetadata* arr[MAX_ORDER+1];
-};
 
 
 size_t var_num_free_blocks = 0;
@@ -37,7 +34,7 @@ MallocMetadata *malloc_lists[MAX_ORDER+1];
 MallocMetadata *malloc_tree[BLOCKS_NUM];
 
 
-int init_tree(){
+int init_tree() {
     void *pointer;
 //    MallocMetadata *new_meta;
 //    new_meta = (MallocMetadata *) pointer;
@@ -53,12 +50,12 @@ int init_tree(){
 //    }
 //    int* adress = static_cast<int*>(pointer);
 //    int align =*adress%128;
-    startAdrr = sbrk(128*1024*32);
+    startAdrr = sbrk(BLOCKS_SIZE * 32);
     if (pointer == (void *) -1) {
         return -1; //todo ending up sending nullptr is that wanted?
     }
     for (int i = 0; i < 32; ++i) {
-        malloc_tree[i]->size = BLOCKS_SIZE-_size_meta_data();
+        malloc_tree[i]->size = BLOCKS_SIZE - _size_meta_data();
         malloc_tree[i]->is_free = true;
         if (i == 0) {
             malloc_tree[i]->prev = nullptr;
@@ -98,10 +95,10 @@ void *smalloc(size_t size) {
     //TODO need to check for pointer fails, maybe make it a seperate function.
     // if list is empty
     if (curr == nullptr) {
-        if(init_tree(size)==-1){
-            return nullptr
+        if (init_tree(size) == -1) {
+            return nullptr;
         }
-        if(init_list(size)==-1){
+        if (init_list(size) == -1) {
 
         }
         pointer = sbrk(new_full_size); //TODO instead of sbrk, call wrapper function.
