@@ -42,6 +42,7 @@ void *smalloc(size_t size) {
         new_meta->is_free = false;
         new_meta->next = nullptr;
         new_meta->prev = nullptr;
+        malloc_list = new_meta;
         var_num_allocated_blocks++;
         var_num_allocated_bytes += size;
         var_num_meta_data_bytes += _size_meta_data();
@@ -49,7 +50,7 @@ void *smalloc(size_t size) {
         return new_meta;
     } else {
         // if list isn't empty check if it has a free block of an appropriate size
-        while (curr != nullptr) {
+        while (curr->next != nullptr) {
             if (curr->is_free && curr->size >= size) {
                 curr->is_free = false;
                 // //use entire block even if we lose space (high internal fragmentation)
@@ -61,6 +62,17 @@ void *smalloc(size_t size) {
             }
             curr = curr->next;
         }
+        if (curr->is_free && curr->size >= size) {
+            curr->is_free = false;
+            // //use entire block even if we lose space (high internal fragmentation)
+            curr++;
+
+            var_num_free_blocks--;
+            var_num_free_bytes -= size;
+            return curr;
+        }
+
+
         // if list doesn't have a freeblock of an appropriate size then allocate a new one here.
         // updates both new block and previous block
 
@@ -119,8 +131,10 @@ void *srealloc(void *oldp, size_t size) {
         return oldp;
     }
 
+
     void *new_mem = smalloc(size);
     if (new_mem != nullptr) {
+        sfree(oldp);
         memmove(new_mem, oldp, size);
         return new_mem;
     } else {
