@@ -30,10 +30,9 @@ void *smalloc(size_t size) {
     MallocMetadata *new_meta;
 
 
-    //TODO need to check for pointer fails, maybe make it a seperate function.
     // if list is empty
     if (curr == nullptr) {
-        pointer = sbrk(new_full_size); //TODO instead of sbrk, call wrapper function.
+        pointer = sbrk(new_full_size);
         if (pointer == (void *) -1) {
             return nullptr;
         }

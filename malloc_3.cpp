@@ -3,8 +3,7 @@
 
 #define MAX_ORDER 10
 #define BLOCKS_NUM 32
-#define BLOCKS_SIZE 1024*128
-
+#define BLOCKS_SIZE 131072
 void * startAdrr= nullptr;
 struct MallocMetadata {
     size_t size;
@@ -58,14 +57,14 @@ int init_tree(){
         return -1; //todo ending up sending nullptr is that wanted?
     }
     for (int i = 0; i < 32; ++i) {
-        malloc_tree[i]->size= BLOCKS_SIZE-_size_meta_data();
-        malloc_tree[i]->is_free= true;
-        malloc_tree[i]->next= nullptr;
-        malloc_tree[i]->prev= nullptr;
-        malloc_tree[i]->parent= nullptr;
-        malloc_tree[i]->left= nullptr;
-        malloc_tree[i]->right= nullptr;
-        malloc_tree[i]->address= startAdrr+(void *)(i*BLOCKS_SIZE);
+        malloc_tree[i]->size = BLOCKS_SIZE-_size_meta_data();
+        malloc_tree[i]->is_free = true;
+        malloc_tree[i]->next = nullptr;
+        malloc_tree[i]->prev = nullptr;
+        malloc_tree[i]->parent = nullptr;
+        malloc_tree[i]->left = nullptr;
+        malloc_tree[i]->right = nullptr;
+        malloc_tree[i]->address = startAdrr+(void *)(i*BLOCKS_SIZE);
 
     }
 
