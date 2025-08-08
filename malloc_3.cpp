@@ -4,6 +4,7 @@
 #define MAX_ORDER 10
 #define BLOCKS_NUM 32
 #define BLOCKS_SIZE 1024*128
+
 void * startAdrr= nullptr;
 struct MallocMetadata {
     size_t size;
@@ -13,7 +14,7 @@ struct MallocMetadata {
     MallocMetadata *parent;
     MallocMetadata *left;
     MallocMetadata *right;
-    int* adress;
+    void* address;
 };
 
 struct ArrList{
@@ -46,23 +47,25 @@ int init_tree(){
 //    new_meta->next = nullptr;
 //    new_meta->prev = nullptr;
 //    malloc_lists = new_meta;
-    pointer = sbrk(0);
+//    pointer = sbrk(0);
+//    if (pointer == (void *) -1) {
+//        return -1; //todo ending up sending nullptr is that wanted?
+//    }
+//    int* adress = static_cast<int*>(pointer);
+//    int align =*adress%128;
+    startAdrr =sbrk(128*1024*32);
     if (pointer == (void *) -1) {
         return -1; //todo ending up sending nullptr is that wanted?
     }
-    int* adress = static_cast<int*>(pointer);
-    int align =*adress%128;
-    pointer =sbrk(align+128*1024*32);
-    adress=static_cast<int*>(pointer)+align;
-    startAdrr=(void *)adress;
     for (int i = 0; i < 32; ++i) {
         malloc_tree[i]->size= BLOCKS_SIZE-_size_meta_data();
-        malloc_tree[i]->is_free= BLOCKS_SIZE-_size_meta_data();
+        malloc_tree[i]->is_free= true;
         malloc_tree[i]->next= nullptr;
         malloc_tree[i]->prev= nullptr;
         malloc_tree[i]->parent= nullptr;
         malloc_tree[i]->left= nullptr;
         malloc_tree[i]->right= nullptr;
+        malloc_tree[i]->address= startAdrr+(void *)(i*BLOCKS_SIZE);
 
     }
 
