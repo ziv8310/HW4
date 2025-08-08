@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <cstring>
+#include <cstddef>
 
 #define MAX_ORDER 10
 #define BLOCKS_NUM 32
@@ -32,7 +33,7 @@ size_t _size_meta_data() {
 }
 
 
-ArrList *malloc_lists = nullptr;
+MallocMetadata *malloc_lists[MAX_ORDER+1];
 MallocMetadata *malloc_tree[BLOCKS_NUM];
 
 
@@ -52,30 +53,39 @@ int init_tree(){
 //    }
 //    int* adress = static_cast<int*>(pointer);
 //    int align =*adress%128;
-    startAdrr =sbrk(128*1024*32);
+    startAdrr = sbrk(128*1024*32);
     if (pointer == (void *) -1) {
         return -1; //todo ending up sending nullptr is that wanted?
     }
     for (int i = 0; i < 32; ++i) {
         malloc_tree[i]->size = BLOCKS_SIZE-_size_meta_data();
         malloc_tree[i]->is_free = true;
-        malloc_tree[i]->next = nullptr;
-        malloc_tree[i]->prev = nullptr;
+        if (i == 0) {
+            malloc_tree[i]->prev = nullptr;
+        } else {
+            malloc_tree[i]->prev = malloc_tree[i-1];
+        }
+        if (i == 31) {
+            malloc_tree[i]->next = nullptr;
+        } else {
+            malloc_tree[i]->next = malloc_tree[i+1];
+        }
+
         malloc_tree[i]->parent = nullptr;
         malloc_tree[i]->left = nullptr;
         malloc_tree[i]->right = nullptr;
-        malloc_tree[i]->address = startAdrr+(void *)(i*BLOCKS_SIZE);
-
+        malloc_tree[i]->address = static_cast<void*>(static_cast<std::byte*>(startAdrr) + BLOCKS_SIZE*i);
     }
-
-
+    malloc_lists[10] = malloc_tree[0];
 }
+
 int init_list(){
 
 
 
 }
 void *smalloc(size_t size) {
+    //focus only on
     if (size == 0 || size > 10 * 10 * 10 * 10 * 10 * 10 * 10 * 10) {
         return nullptr;
     }
